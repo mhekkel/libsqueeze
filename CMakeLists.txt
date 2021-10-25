@@ -13,10 +13,10 @@ include(GNUInstallDirs)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-find_package(Boost 1.70.0 REQUIRED)
+find_package(Boost 1.70.0 REQUIRED headers)
 
 add_executable(unit-test ${PROJECT_SOURCE_DIR}/unit-test.cpp)
-target_include_directories(unit-test PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include)
+target_include_directories(unit-test PRIVATE ${Boost_INCLUDE_DIRS} ${CMAKE_CURRENT_SOURCE_DIR}/include)
 
 enable_testing()
 

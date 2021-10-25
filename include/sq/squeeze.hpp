@@ -7,7 +7,8 @@
 ///	uint32_t.
 ///
 /// This is a simplified version of the array compression routines in MRS
-/// Only supported datatype is uint32_t and only supported width it 24 bit.
+/// Only supported datatype is uint32_t and only supported width it 30 bit
+/// so in fact we store uint30_t :-)
 
 #pragma once
 
@@ -286,7 +287,7 @@ struct selector
 };
  
 /// \brief return the width in bits of the value \a v
-inline uint32_t bit_width(uint32_t v)
+inline constexpr uint32_t bit_width(uint32_t v)
 {
 	uint32_t result = 0;
 	while (v > 0)

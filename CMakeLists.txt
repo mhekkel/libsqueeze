@@ -1,17 +1,19 @@
-cmake_minimum_required(VERSION 3.10)
+#          Copyright Maarten L. Hekkelman, 2022
+# Distributed under the Boost Software License, Version 1.0.
+#    (See accompanying file LICENSE_1_0.txt or copy at
+#          http://www.boost.org/LICENSE_1_0.txt)
 
-list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
+cmake_minimum_required(VERSION 3.16)
 
 # set the project name
 project(squeeze VERSION 1.0.0)
 
-include(CMakePackageConfigHelpers)
-include(Dart)
-include(GenerateExportHeader)
 include(GNUInstallDirs)
+include(CMakePackageConfigHelpers)
+include(FindPkgConfig)
 
 set(CXX_EXTENSIONS OFF)
-set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD 17 CACHE STRING "The minimum version of C++ required for this library")
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")
@@ -23,62 +25,73 @@ elseif(MSVC)
     add_compile_options(/permissive-)
 endif()
 
-find_package(Boost 1.70.0 REQUIRED headers)
-
-add_executable(unit-test ${PROJECT_SOURCE_DIR}/unit-test.cpp)
-target_include_directories(unit-test PRIVATE ${Boost_INCLUDE_DIRS} ${CMAKE_CURRENT_SOURCE_DIR}/include)
-
-enable_testing()
-
-add_test(NAME unit-test COMMAND $<TARGET_FILE:unit-test>)
-
 add_library(squeeze INTERFACE)
+add_library(squeeze::squeeze ALIAS squeeze)
 
-set(INCLUDE_INSTALL_DIR ${CMAKE_INSTALL_INCLUDEDIR} )
+target_include_directories(squeeze INTERFACE
+	$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+	$<INSTALL_INTERFACE:include>
+)
+
+# adding header sources just helps IDEs
+target_sources(squeeze INTERFACE
+	$<BUILD_INTERFACE:${CMAKE_CURRENT_LIST_DIR}/include>$<INSTALL_INTERFACE:include>/squeeze.hpp
+)
+
+set_target_properties(squeeze PROPERTIES PUBLIC_HEADER include/squeeze.hpp)
+
+# installation
+set(version_config "${CMAKE_CURRENT_BINARY_DIR}/squeezeConfigVersion.cmake")
+
+set(INCLUDE_INSTALL_DIR ${CMAKE_INSTALL_INCLUDEDIR})
+
+include(CMakePackageConfigHelpers)
+write_basic_package_version_file("${version_config}"
+	VERSION ${PROJECT_VERSION}
+	COMPATIBILITY SameMajorVersion)
 
 install(TARGETS squeeze
-	EXPORT squeeze-targets
-	ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
-	LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
-	RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
-	INCLUDES DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
+	EXPORT squeezeConfig
+	PUBLIC_HEADER DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
 
-install(EXPORT squeeze-targets
-	FILE "squeeze-targets.cmake"
-	NAMESPACE squeeze::
-	DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/squeeze
-)
+export(TARGETS squeeze NAMESPACE squeeze:: FILE squeezeTargets.cmake)
 
-install(
-	DIRECTORY include/sq
-	DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
-	COMPONENT Devel
-)
+if(WIN32 AND NOT CYGWIN)
+	set(CONFIG_LOC CMake)
+else()
+	set(CONFIG_LOC "${CMAKE_INSTALL_LIBDIR}/cmake/squeeze")
+endif()
 
-configure_package_config_file(squeeze-config.cmake.in
-	${CMAKE_CURRENT_BINARY_DIR}/squeeze/squeeze-config.cmake
+configure_package_config_file(
+	${CMAKE_SOURCE_DIR}/cmake/squeezeConfig.cmake.in
+	${CMAKE_SOURCE_DIR}/cmake/squeezeConfig.cmake
 	INSTALL_DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/squeeze
 	PATH_VARS INCLUDE_INSTALL_DIR
 )
 
-install(FILES
-		"${CMAKE_CURRENT_BINARY_DIR}/squeeze/squeeze-config.cmake"
-		"${CMAKE_CURRENT_BINARY_DIR}/squeeze/squeeze-config-version.cmake"
-	DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/squeeze
-	COMPONENT Devel
-)
+install(EXPORT squeezeConfig
+	FILE squeezeTargets.cmake
+	NAMESPACE squeeze::
+	DESTINATION ${CONFIG_LOC})
+install(
+	FILES cmake/squeezeConfig.cmake "${version_config}"
+	DESTINATION ${CONFIG_LOC})
 
-set(squeeze_MAJOR_VERSION 1)
-set_target_properties(squeeze PROPERTIES
-	INTERFACE_squeeze_MAJOR_VERSION ${squeeze_MAJOR_VERSION})
+if(ENABLE_TESTING)
+	enable_testing()
 
-set_property(TARGET squeeze APPEND PROPERTY
-  COMPATIBLE_INTERFACE_STRING squeeze_MAJOR_VERSION
-)
+	find_package(Boost 1.70.0 REQUIRED headers)
 
-write_basic_package_version_file(
-  "${CMAKE_CURRENT_BINARY_DIR}/squeeze/squeeze-config-version.cmake"
-  VERSION ${PROJECT_VERSION}
-  COMPATIBILITY AnyNewerVersion
-)
+	add_executable(unit-test ${PROJECT_SOURCE_DIR}/unit-test.cpp)
+
+	target_link_libraries(unit-test squeeze::squeeze Boost::headers)
+
+	if(MSVC)
+		# Specify unwind semantics so that MSVC knowns how to handle exceptions
+		target_compile_options(unit-test PRIVATE /EHsc)
+	endif()
+
+	add_test(NAME unit-test COMMAND $<TARGET_FILE:unit-test>)
+endif(ENABLE_TESTING)
+
 

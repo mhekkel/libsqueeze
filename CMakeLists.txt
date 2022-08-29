@@ -10,11 +10,12 @@ project(squeeze VERSION 1.0.0)
 
 include(GNUInstallDirs)
 include(CMakePackageConfigHelpers)
-include(FindPkgConfig)
 
 set(CXX_EXTENSIONS OFF)
 set(CMAKE_CXX_STANDARD 17 CACHE STRING "The minimum version of C++ required for this library")
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
+
+option(ENABLE_TESTING "Build the unit test applications" OFF)
 
 if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")
 	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra -Wno-unused-parameter -Wno-missing-field-initializers")
@@ -63,8 +64,8 @@ else()
 endif()
 
 configure_package_config_file(
-	${CMAKE_SOURCE_DIR}/cmake/squeezeConfig.cmake.in
-	${CMAKE_SOURCE_DIR}/cmake/squeezeConfig.cmake
+	${PROJECT_SOURCE_DIR}/cmake/squeezeConfig.cmake.in
+	${PROJECT_SOURCE_DIR}/cmake/squeezeConfig.cmake
 	INSTALL_DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/squeeze
 	PATH_VARS INCLUDE_INSTALL_DIR
 )
@@ -93,5 +94,3 @@ if(ENABLE_TESTING)
 
 	add_test(NAME unit-test COMMAND $<TARGET_FILE:unit-test>)
 endif(ENABLE_TESTING)
-
-

@@ -6,7 +6,7 @@
 cmake_minimum_required(VERSION 3.16)
 
 # set the project name
-project(squeeze VERSION 1.0.0)
+project(squeeze VERSION 1.0.1)
 
 include(GNUInstallDirs)
 include(CMakePackageConfigHelpers)
